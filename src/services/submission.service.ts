@@ -457,7 +457,7 @@ export class SubmissionService {
     })
 
     // Update submission status based on review
-    let newStatus = submission.status
+    let newStatus: SubmissionStatus = submission.status
     if (data.status === ReviewStatus.APPROVED) {
       // Check if all reviews are approved
       const allReviews = await prisma.review.findMany({

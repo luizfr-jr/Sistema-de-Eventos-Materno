@@ -26,7 +26,7 @@ export const registerSchema = z.object({
 // VALIDAÇÕES DE EVENTOS
 // ==========================================
 
-export const eventSchema = z.object({
+const baseEventSchema = z.object({
   title: z.string().min(5, 'Título deve ter no mínimo 5 caracteres'),
   description: z.string().min(20, 'Descrição deve ter no mínimo 20 caracteres'),
   shortDesc: z.string().optional(),
@@ -51,7 +51,9 @@ export const eventSchema = z.object({
   workload: z.number().int().positive().optional(),
   tags: z.array(z.string()).optional(),
   keywords: z.array(z.string()).optional(),
-}).refine((data) => {
+})
+
+export const eventSchema = baseEventSchema.refine((data) => {
   const start = new Date(data.startDate)
   const end = new Date(data.endDate)
   return end >= start
@@ -59,6 +61,8 @@ export const eventSchema = z.object({
   message: 'Data de término deve ser posterior à data de início',
   path: ['endDate'],
 })
+
+export const partialEventSchema = baseEventSchema.partial()
 
 // ==========================================
 // VALIDAÇÕES DE TRABALHOS ACADÊMICOS

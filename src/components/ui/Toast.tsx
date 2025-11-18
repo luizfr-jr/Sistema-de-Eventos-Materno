@@ -79,7 +79,7 @@ function ToastContent({ toast: t }: { toast: ToastType }) {
         {typeof t.message === 'string' ? (
           <p className="text-sm font-medium">{t.message}</p>
         ) : (
-          t.message
+          <>{t.message}</>
         )}
       </div>
       <button

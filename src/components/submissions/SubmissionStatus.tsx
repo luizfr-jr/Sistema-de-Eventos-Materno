@@ -90,11 +90,11 @@ export function SubmissionStatus({
               const isPast =
                 (s === Status.DRAFT && status !== Status.DRAFT) ||
                 (s === Status.SUBMITTED &&
-                  [Status.UNDER_REVIEW, Status.APPROVED, Status.REJECTED, Status.REVISION].includes(
+                  ([Status.UNDER_REVIEW, Status.APPROVED, Status.REJECTED, Status.REVISION] as Status[]).includes(
                     status
                   )) ||
                 (s === Status.UNDER_REVIEW &&
-                  [Status.APPROVED, Status.REJECTED, Status.REVISION].includes(status))
+                  ([Status.APPROVED, Status.REJECTED, Status.REVISION] as Status[]).includes(status))
 
               return (
                 <div key={s} className="flex flex-col items-center gap-2 flex-1">

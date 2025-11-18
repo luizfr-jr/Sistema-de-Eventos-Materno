@@ -251,7 +251,7 @@ export default function QRScanPage() {
                       setError(null)
                       startCamera()
                     }}
-                    variant={result.success ? 'default' : 'destructive'}
+                    variant={result.success ? 'primary' : 'destructive'}
                     className="mt-4"
                   >
                     Escanear Outro
