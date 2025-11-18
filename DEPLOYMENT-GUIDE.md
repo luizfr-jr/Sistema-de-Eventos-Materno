@@ -71,24 +71,59 @@ A Vercel detectará automaticamente Next.js. Confirme:
 
 ### 3.3. Configurar Variáveis de Ambiente
 
-Na seção **Environment Variables**, adicione:
+**⚠️ CRÍTICO:** As variáveis de ambiente devem ser configuradas diretamente no Dashboard do Vercel, NÃO no arquivo `vercel.json`.
 
-```env
-# Database
-DATABASE_URL=postgresql://user:password@host:5432/dbname?sslmode=require
+Na seção **Environment Variables**, clique em **Add** e adicione uma por uma:
 
-# NextAuth
-NEXTAUTH_URL=https://seu-dominio.vercel.app
-NEXTAUTH_SECRET=cole-a-chave-gerada-no-passo-2
+#### Variável 1: DATABASE_URL
+```
+Name: DATABASE_URL
+Value: postgresql://user:password@host:5432/dbname?sslmode=require
+Environments: ✓ Production ✓ Preview ✓ Development
+```
 
-# App
-NEXT_PUBLIC_APP_URL=https://seu-dominio.vercel.app
+#### Variável 2: NEXTAUTH_SECRET
+```
+Name: NEXTAUTH_SECRET
+Value: [cole-a-chave-gerada-no-passo-2]
+Environments: ✓ Production ✓ Preview ✓ Development
+```
+
+#### Variável 3: NEXTAUTH_URL
+```
+Name: NEXTAUTH_URL
+Value: https://seu-dominio.vercel.app
+Environments: ✓ Production (deixe Preview e Dev em branco)
+```
+
+#### Variável 4: NEXT_PUBLIC_APP_URL
+```
+Name: NEXT_PUBLIC_APP_URL
+Value: https://seu-dominio.vercel.app
+Environments: ✓ Production ✓ Preview ✓ Development
+```
+
+#### Variáveis Opcionais (apenas se for usar):
+
+**BLOB_READ_WRITE_TOKEN** (para upload de arquivos):
+```
+Name: BLOB_READ_WRITE_TOKEN
+Value: [será gerado automaticamente ao criar Blob Storage]
+Environments: ✓ Production ✓ Preview ✓ Development
+```
+
+**RESEND_API_KEY** (para envio de emails):
+```
+Name: RESEND_API_KEY
+Value: re_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+Environments: ✓ Production ✓ Preview ✓ Development
 ```
 
 **⚠️ IMPORTANTE:**
 - Use a Connection String do seu banco PostgreSQL
 - Adicione `?sslmode=require` no final da DATABASE_URL
 - Para Neon, use a string de "Pooled connection"
+- Marque todos os 3 ambientes (Production, Preview, Development) para cada variável
 
 ### 3.4. Deploy
 
@@ -234,6 +269,24 @@ A Vercel:
 ---
 
 ## 🐛 Troubleshooting
+
+### Erro: "Environment Variable references Secret which does not exist"
+
+**Mensagem completa:**
+```
+Environment Variable "DATABASE_URL" references Secret "database-url", which does not exist.
+```
+
+**Causa:**
+O arquivo `vercel.json` estava tentando referenciar Secrets do Vercel usando a sintaxe `@database-url`, mas esses secrets não foram criados.
+
+**Solução:**
+✅ Este erro já foi corrigido! A seção `env` foi removida do `vercel.json`.
+
+**Como evitar:**
+- Configure TODAS as variáveis de ambiente diretamente no Dashboard do Vercel
+- NÃO adicione variáveis de ambiente no arquivo `vercel.json`
+- Use o `vercel.json` apenas para configurações de build, regions e functions
 
 ### Erro: "Cannot connect to database"
 
