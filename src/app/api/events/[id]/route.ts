@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { eventService } from '@/services/event.service'
-import { eventSchema } from '@/lib/validators'
+import { eventSchema, partialEventSchema } from '@/lib/validators'
 import { UserRole } from '@prisma/client'
 import { ZodError } from 'zod'
 
@@ -76,8 +76,7 @@ export async function PATCH(
 
     const body = await request.json()
 
-    // For partial updates, we need to make the schema partial
-    const partialEventSchema = eventSchema.partial()
+    // For partial updates, we use the partial schema
     const validatedData = partialEventSchema.parse(body)
 
     // Convert string dates to Date objects if present

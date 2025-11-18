@@ -268,15 +268,15 @@ export class CertificateService {
       where.role = filters.role
     }
 
-    if (filters.startDate) {
-      where.issuedAt = { gte: filters.startDate }
-    }
-
-    if (filters.endDate) {
+    if (filters.startDate && filters.endDate) {
       where.issuedAt = {
-        ...where.issuedAt,
+        gte: filters.startDate,
         lte: filters.endDate,
       }
+    } else if (filters.startDate) {
+      where.issuedAt = { gte: filters.startDate }
+    } else if (filters.endDate) {
+      where.issuedAt = { lte: filters.endDate }
     }
 
     const [certificates, total] = await Promise.all([

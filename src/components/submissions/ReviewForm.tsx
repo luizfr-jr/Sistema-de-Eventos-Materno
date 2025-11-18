@@ -17,7 +17,14 @@ export function ReviewForm({ submissionId, onSuccess }: ReviewFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    status: ReviewStatus
+    originality: number
+    relevance: number
+    methodology: number
+    clarity: number
+    comments: string
+  }>({
     status: ReviewStatus.PENDING,
     originality: 0,
     relevance: 0,

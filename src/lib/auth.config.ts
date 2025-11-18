@@ -1,6 +1,7 @@
 import type { NextAuthConfig } from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/prisma'
+import { UserRole } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 
@@ -51,8 +52,8 @@ export default {
             name: user.name,
             email: user.email,
             role: user.role,
-            image: user.image,
-            institution: user.institution,
+            image: user.image ?? undefined,
+            institution: user.institution ?? undefined,
           }
         } catch (error) {
           console.error('Erro na autenticação:', error)
@@ -85,7 +86,7 @@ export default {
       // Adicionar informações do token à sessão
       if (session.user) {
         session.user.id = token.id as string
-        session.user.role = token.role as string
+        session.user.role = token.role as UserRole
         session.user.institution = token.institution as string | undefined
       }
       return session

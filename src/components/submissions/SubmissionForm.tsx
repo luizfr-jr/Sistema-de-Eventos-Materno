@@ -63,7 +63,7 @@ export function SubmissionForm({
   const handleRemoveKeyword = (index: number) => {
     setFormData((prev) => ({
       ...prev,
-      keywords: prev.keywords.filter((_, i) => i !== index),
+      keywords: prev.keywords.filter((_keyword: string, i: number) => i !== index),
     }))
   }
 
@@ -80,7 +80,7 @@ export function SubmissionForm({
   const handleRemoveAuthor = (index: number) => {
     setFormData((prev) => ({
       ...prev,
-      authors: prev.authors.filter((_, i) => i !== index),
+      authors: prev.authors.filter((_author: Author, i: number) => i !== index),
     }))
   }
 
@@ -267,7 +267,7 @@ export function SubmissionForm({
         </div>
         {formData.keywords.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-2">
-            {formData.keywords.map((keyword, index) => (
+            {formData.keywords.map((keyword: string, index: number) => (
               <div
                 key={index}
                 className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-ninma-purple/10 text-ninma-purple text-sm"
