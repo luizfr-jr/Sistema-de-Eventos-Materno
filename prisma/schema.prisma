@@ -1,0 +1,438 @@
+// Prisma Schema - ninma hub
+// Sistema de Gestão de Eventos Acadêmicos
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========================================
+// USUÁRIOS E AUTENTICAÇÃO
+// ========================================
+
+enum UserRole {
+  ADMIN          // Acesso total ao sistema
+  COORDINATOR    // Gerenciar eventos e trabalhos
+  REVIEWER       // Avaliar trabalhos acadêmicos
+  PARTICIPANT    // Participar de eventos
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified DateTime? @map("email_verified")
+  password      String
+  image         String?
+  role          UserRole  @default(PARTICIPANT)
+
+  // Informações adicionais
+  institution   String?
+  course        String?
+  phone         String?
+  cpf           String?   @unique
+  bio           String?   @db.Text
+
+  // Datas
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  lastLoginAt   DateTime? @map("last_login_at")
+
+  // Relações
+  createdEvents Event[]   @relation("EventCreator")
+  registrations Registration[]
+  submissions   Submission[]
+  reviews       Review[]
+  certificates  Certificate[]
+  sessions      Session[]
+  accounts      Account[]
+
+  @@map("users")
+}
+
+// NextAuth Session
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// NextAuth Account (OAuth)
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+// ========================================
+// EVENTOS
+// ========================================
+
+enum EventStatus {
+  DRAFT      // Rascunho
+  OPEN       // Aberto para inscrições
+  CLOSED     // Encerrado para inscrições
+  IN_PROGRESS // Em andamento
+  COMPLETED  // Concluído
+  CANCELLED  // Cancelado
+}
+
+enum EventType {
+  CONFERENCE    // Conferência
+  WORKSHOP      // Workshop
+  SEMINAR       // Seminário
+  COURSE        // Curso
+  WEBINAR       // Webinar
+  SYMPOSIUM     // Simpósio
+  CONGRESS      // Congresso
+  OTHER         // Outro
+}
+
+model Event {
+  id          String      @id @default(cuid())
+  title       String
+  slug        String      @unique
+  description String      @db.Text
+  shortDesc   String?     @map("short_desc")
+
+  // Tipo e Status
+  type        EventType   @default(SEMINAR)
+  status      EventStatus @default(DRAFT)
+
+  // Datas
+  startDate   DateTime    @map("start_date")
+  endDate     DateTime    @map("end_date")
+
+  // Local
+  location    String
+  address     String?
+  city        String?
+  state       String?
+  isOnline    Boolean     @default(false) @map("is_online")
+  meetingUrl  String?     @map("meeting_url")
+
+  // Capacidade e Inscrições
+  capacity    Int?
+  allowRegistrations Boolean @default(true) @map("allow_registrations")
+  registrationStart  DateTime? @map("registration_start")
+  registrationEnd    DateTime? @map("registration_end")
+  requiresApproval   Boolean @default(false) @map("requires_approval")
+
+  // Trabalhos Acadêmicos
+  allowSubmissions    Boolean   @default(false) @map("allow_submissions")
+  submissionStart     DateTime? @map("submission_start")
+  submissionEnd       DateTime? @map("submission_end")
+  submissionGuidelines String?  @db.Text @map("submission_guidelines")
+
+  // Certificados
+  issueCertificates   Boolean   @default(true) @map("issue_certificates")
+  certificateTemplate String?   @map("certificate_template")
+  workload           Int?      // Carga horária em horas
+
+  // Mídia
+  image       String?
+  banner      String?
+
+  // Metadados
+  tags        String[]
+  keywords    String[]
+
+  // Criador
+  createdById String    @map("created_by_id")
+  createdBy   User      @relation("EventCreator", fields: [createdById], references: [id])
+
+  // Datas de auditoria
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  publishedAt DateTime? @map("published_at")
+
+  // Relações
+  registrations Registration[]
+  submissions   Submission[]
+  certificates  Certificate[]
+  schedules     EventSchedule[]
+
+  @@index([status])
+  @@index([startDate])
+  @@index([createdById])
+  @@map("events")
+}
+
+// Programação do Evento
+model EventSchedule {
+  id          String   @id @default(cuid())
+  eventId     String   @map("event_id")
+  title       String
+  description String?  @db.Text
+  speaker     String?
+  startTime   DateTime @map("start_time")
+  endTime     DateTime @map("end_time")
+  location    String?
+  order       Int      @default(0)
+
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@map("event_schedules")
+}
+
+// ========================================
+// INSCRIÇÕES
+// ========================================
+
+enum RegistrationStatus {
+  PENDING    // Pendente de aprovação
+  CONFIRMED  // Confirmada
+  CANCELLED  // Cancelada
+  ATTENDED   // Presente
+  ABSENT     // Ausente
+  WAITLIST   // Lista de espera
+}
+
+model Registration {
+  id          String             @id @default(cuid())
+  eventId     String             @map("event_id")
+  userId      String             @map("user_id")
+  status      RegistrationStatus @default(PENDING)
+
+  // Informações da inscrição
+  notes       String?            @db.Text
+  dietaryRestrictions String?   @map("dietary_restrictions")
+
+  // Confirmação de presença
+  confirmed   Boolean            @default(false)
+  confirmedAt DateTime?          @map("confirmed_at")
+
+  // Datas
+  registeredAt DateTime          @default(now()) @map("registered_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  // Relações
+  event       Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attendance  Attendance?
+  certificate Certificate?
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+  @@index([status])
+  @@map("registrations")
+}
+
+// ========================================
+// PRESENÇAS
+// ========================================
+
+enum AttendanceMethod {
+  QR_CODE     // QR Code escaneado
+  MANUAL      // Registro manual
+  AUTOMATIC   // Automático (online)
+}
+
+model Attendance {
+  id             String           @id @default(cuid())
+  registrationId String           @unique @map("registration_id")
+
+  // Check-in/out
+  checkinAt      DateTime         @map("checkin_at")
+  checkoutAt     DateTime?        @map("checkout_at")
+
+  // Método de registro
+  method         AttendanceMethod @default(MANUAL)
+
+  // Informações adicionais
+  location       String?
+  ipAddress      String?          @map("ip_address")
+  userAgent      String?          @map("user_agent")
+  notes          String?          @db.Text
+
+  // Quem registrou (caso manual)
+  recordedById   String?          @map("recorded_by_id")
+
+  registration   Registration     @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@index([checkinAt])
+  @@map("attendances")
+}
+
+// ========================================
+// TRABALHOS ACADÊMICOS
+// ========================================
+
+enum SubmissionStatus {
+  DRAFT         // Rascunho
+  SUBMITTED     // Enviado
+  UNDER_REVIEW  // Em avaliação
+  APPROVED      // Aprovado
+  REJECTED      // Rejeitado
+  REVISION      // Revisão solicitada
+}
+
+model Submission {
+  id          String           @id @default(cuid())
+  eventId     String           @map("event_id")
+  userId      String           @map("user_id")
+
+  // Informações do trabalho
+  title       String
+  abstract    String           @db.Text
+  keywords    String[]
+
+  // Autores
+  authors     Json             // Array de { name, email, institution }
+
+  // Arquivo
+  fileUrl     String           @map("file_url")
+  fileName    String           @map("file_name")
+  fileSize    Int              @map("file_size")
+  mimeType    String           @map("mime_type")
+
+  // Status
+  status      SubmissionStatus @default(DRAFT)
+
+  // Datas
+  submittedAt DateTime         @default(now()) @map("submitted_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  // Relações
+  event       Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  author      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviews     Review[]
+
+  @@index([eventId])
+  @@index([userId])
+  @@index([status])
+  @@map("submissions")
+}
+
+// Avaliações de Trabalhos
+enum ReviewStatus {
+  PENDING    // Pendente
+  APPROVED   // Aprovado
+  REJECTED   // Rejeitado
+  REVISION   // Solicitar revisão
+}
+
+model Review {
+  id           String       @id @default(cuid())
+  submissionId String       @map("submission_id")
+  reviewerId   String       @map("reviewer_id")
+
+  // Avaliação
+  status       ReviewStatus @default(PENDING)
+  rating       Int?         // 1-5
+  comments     String?      @db.Text
+
+  // Critérios de avaliação
+  originality  Int?         // 1-5
+  relevance    Int?         // 1-5
+  methodology  Int?         // 1-5
+  clarity      Int?         // 1-5
+
+  // Datas
+  reviewedAt   DateTime     @default(now()) @map("reviewed_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  submission   Submission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  reviewer     User         @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+  @@index([reviewerId])
+  @@map("reviews")
+}
+
+// ========================================
+// CERTIFICADOS
+// ========================================
+
+model Certificate {
+  id               String       @id @default(cuid())
+  registrationId   String       @unique @map("registration_id")
+  eventId          String       @map("event_id")
+  userId           String       @map("user_id")
+
+  // Verificação
+  verificationCode String       @unique @map("verification_code")
+
+  // Dados do certificado
+  workload         Int          // Carga horária em horas
+  role             String?      // Participante, Palestrante, etc
+
+  // Arquivo PDF
+  pdfUrl           String?      @map("pdf_url")
+
+  // Datas
+  issuedAt         DateTime     @default(now()) @map("issued_at")
+  validUntil       DateTime?    @map("valid_until")
+
+  // Relações
+  registration     Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  event            Event        @relation(fields: [eventId], references: [id])
+  user             User         @relation(fields: [userId], references: [id])
+
+  @@index([eventId])
+  @@index([userId])
+  @@index([verificationCode])
+  @@map("certificates")
+}
+
+// ========================================
+// CONFIGURAÇÕES DO SISTEMA
+// ========================================
+
+model SystemSettings {
+  id    String @id @default(cuid())
+  key   String @unique
+  value Json
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
+
+// ========================================
+// LOGS DE AUDITORIA
+// ========================================
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  action    String   // CREATE, UPDATE, DELETE, LOGIN, etc
+  entity    String   // User, Event, Registration, etc
+  entityId  String   @map("entity_id")
+  changes   Json?    // Mudanças realizadas
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
